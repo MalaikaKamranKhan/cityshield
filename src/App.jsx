@@ -65,12 +65,12 @@ const MOCK_SUBMISSIONS = [
   {
     id: "mock_005", isMock: true,
     incident_type: "hazmat",
-    aiAdvisory: { sceneCategory: "Chemical Spill (Unconfirmed)", notes: "Liquid pooling near loading dock. Color/texture consistent with industrial fluid.", faceBlurred: false },
+    aiAdvisory: { sceneCategory: "Chemical Spill", notes: "Liquid pooling near loading dock. Color/texture consistent with industrial fluid.", faceBlurred: false },
     media_type: "photo", media_url: null,
     latitude: 40.7195, longitude: -74.0001,
     created_at: new Date(Date.now() - 75000).toISOString(),
     status: "pending_review", trustScore: 0.44, severityEstimate: 3,
-    gpsValidated: false, distanceFromStation: 3.7, accountAge: "3 weeks", priorSubmissions: 1,
+    gpsValidated: false, distanceFromStation: 3.7, accountAge: "3 weeks", priorSubmissions: 0,
   },
 ];
 
