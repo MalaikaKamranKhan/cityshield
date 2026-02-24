@@ -55,9 +55,7 @@ export default function CitizenUpload({ onBack }) {
   const handleSubmit = async () => {
     setSubmitting(true);
     setError(null);
-
     try {
-      // Step 1: Upload media file to Supabase Storage
       setUploadProgress("Uploading media...");
       const fileExt = mediaFile.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
@@ -66,37 +64,30 @@ export default function CitizenUpload({ onBack }) {
       const { error: uploadError } = await supabase.storage
         .from('submissions')
         .upload(filePath, mediaFile);
-
       if (uploadError) throw uploadError;
 
-      // Step 2: Get the public URL of the uploaded file
       const { data: urlData } = supabase.storage
         .from('submissions')
         .getPublicUrl(filePath);
-
       const mediaUrl = urlData.publicUrl;
 
-      // Step 3: Save submission info to database
       setUploadProgress("Saving to database...");
       const { error: dbError } = await supabase
         .from('submissions')
         .insert({
           incident_type: incidentType.key,
-          description: description,
+          description,
           media_url: mediaUrl,
           media_type: mediaPreview.type,
           latitude: location?.lat || null,
           longitude: location?.lng || null,
           status: 'pending_review',
         });
-
       if (dbError) throw dbError;
 
-      // Success!
       setUploadProgress("");
       setSubmitting(false);
       setStep(4);
-
     } catch (err) {
       setError(`Something went wrong: ${err.message}`);
       setUploadProgress("");
@@ -107,176 +98,147 @@ export default function CitizenUpload({ onBack }) {
   const canProceedStep2 = mediaFile !== null;
   const canSubmit = description.trim().length > 0;
 
-  // ── Step 1: Choose incident type ──────────────────────────────────────────
+  // ── Step 1 ────────────────────────────────────────────────────────────────
   if (step === 1) return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <button onClick={onBack} style={styles.backBtn}>← Back to Dashboard</button>
-
-        <div style={styles.header}>
-          <div style={styles.headerIcon}>🛡️</div>
-          <h1 style={styles.title}>City Shield</h1>
-          <p style={styles.subtitle}>Submit an emergency report</p>
+    <div style={s.page}>
+      <style>{mq}</style>
+      <div style={s.card}>
+        <button onClick={onBack} style={s.backBtn}>← Back to Dashboard</button>
+        <div style={s.header}>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>🛡️</div>
+          <h1 style={s.title}>City Shield</h1>
+          <p style={s.subtitle}>Submit an emergency report</p>
         </div>
-
         <StepBar current={1} />
-
-        <h2 style={styles.sectionTitle}>What's happening?</h2>
-        <p style={styles.sectionSubtitle}>Select the type of emergency you're reporting</p>
-
-        <div style={styles.typeGrid}>
+        <h2 style={s.sectionTitle}>What's happening?</h2>
+        <p style={s.sectionSubtitle}>Select the type of emergency</p>
+        <div style={s.typeGrid}>
           {INCIDENT_TYPES.map(type => (
             <button
               key={type.key}
               onClick={() => { setIncidentType(type); setStep(2); getLocation(); }}
-              style={{ ...styles.typeBtn, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
-              onMouseEnter={e => e.currentTarget.style.background = "rgba(99,102,241,0.1)"}
+              style={s.typeBtn}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(99,102,241,0.15)"}
               onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
             >
-              <span style={{ fontSize: 28 }}>{type.icon}</span>
-              <span style={styles.typeBtnLabel}>{type.label}</span>
-              <span style={styles.typeBtnDesc}>{type.description}</span>
+              <span style={{ fontSize: 32 }}>{type.icon}</span>
+              <span style={s.typeBtnLabel}>{type.label}</span>
+              <span style={s.typeBtnDesc}>{type.description}</span>
             </button>
           ))}
         </div>
-
-        <div style={styles.disclaimer}>
+        <div style={s.disclaimer}>
           ⚠️ For life-threatening emergencies always call <strong>911</strong> first.
         </div>
       </div>
     </div>
   );
 
-  // ── Step 2: Upload media ──────────────────────────────────────────────────
+  // ── Step 2 ────────────────────────────────────────────────────────────────
   if (step === 2) return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <button onClick={() => setStep(1)} style={styles.backBtn}>← Back</button>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-          <span style={{ fontSize: 28 }}>{incidentType.icon}</span>
+    <div style={s.page}>
+      <style>{mq}</style>
+      <div style={s.card}>
+        <button onClick={() => setStep(1)} style={s.backBtn}>← Back</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+          <span style={{ fontSize: 32 }}>{incidentType.icon}</span>
           <div>
-            <h2 style={{ ...styles.title, fontSize: 20, marginBottom: 2 }}>{incidentType.label}</h2>
-            <p style={styles.sectionSubtitle}>{incidentType.description}</p>
+            <h2 style={{ ...s.title, fontSize: 18, marginBottom: 2 }}>{incidentType.label}</h2>
+            <p style={{ ...s.subtitle, margin: 0 }}>{incidentType.description}</p>
           </div>
         </div>
-
         <StepBar current={2} />
-
-        <h2 style={styles.sectionTitle}>Add photo or video</h2>
-        <p style={styles.sectionSubtitle}>Visual evidence helps dispatchers assess the situation faster</p>
+        <h2 style={s.sectionTitle}>Add photo or video</h2>
+        <p style={s.sectionSubtitle}>Visual evidence helps dispatchers respond faster</p>
 
         <div
           onClick={() => fileInputRef.current?.click()}
-          style={{
-            border: "2px dashed rgba(99,102,241,0.4)", borderRadius: 12,
-            padding: 32, textAlign: "center", cursor: "pointer",
-            background: "rgba(99,102,241,0.04)", marginBottom: 16,
-          }}
+          style={s.uploadBox}
           onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(99,102,241,0.8)"}
           onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(99,102,241,0.4)"}
         >
           {mediaPreview ? (
             <div>
-              {mediaPreview.type === "photo" ? (
-                <img src={mediaPreview.url} alt="preview" style={{ maxHeight: 200, maxWidth: "100%", borderRadius: 8, marginBottom: 8 }} />
-              ) : (
-                <video src={mediaPreview.url} controls style={{ maxHeight: 200, maxWidth: "100%", borderRadius: 8, marginBottom: 8 }} />
-              )}
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#10B981" }}>
+              {mediaPreview.type === "photo"
+                ? <img src={mediaPreview.url} alt="preview" style={{ maxHeight: 220, maxWidth: "100%", borderRadius: 8, marginBottom: 8 }} />
+                : <video src={mediaPreview.url} controls style={{ maxHeight: 220, maxWidth: "100%", borderRadius: 8, marginBottom: 8 }} />
+              }
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#10B981" }}>
                 ✅ {mediaPreview.name} — tap to change
               </div>
             </div>
           ) : (
             <div>
-              <div style={{ fontSize: 40, marginBottom: 8 }}>📷</div>
-              <div style={{ color: "#818CF8", fontWeight: 600, marginBottom: 4 }}>Tap to add photo or video</div>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#475569" }}>JPG, PNG, MP4 supported</div>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>📷</div>
+              <div style={{ color: "#818CF8", fontWeight: 600, fontSize: 16, marginBottom: 6 }}>Tap to add photo or video</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#475569" }}>JPG, PNG, MP4 supported</div>
             </div>
           )}
         </div>
-        <input ref={fileInputRef} type="file" accept="image/*,video/*" onChange={handleFileChange} style={{ display: "none" }} />
+        <input ref={fileInputRef} type="file" accept="image/*,video/*" capture="environment" onChange={handleFileChange} style={{ display: "none" }} />
 
-        <div style={{
-          padding: "10px 14px", borderRadius: 8, marginBottom: 20,
-          background: location ? "rgba(16,185,129,0.08)" : "rgba(255,255,255,0.03)",
-          border: `1px solid ${location ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.08)"}`,
-          display: "flex", alignItems: "center", gap: 8,
-        }}>
-          {locationLoading ? (
-            <><span>⏳</span><span style={{ fontSize: 12, color: "#94A3B8" }}>Getting your location...</span></>
-          ) : location ? (
-            <><span>📍</span><span style={{ fontSize: 12, color: "#10B981", fontFamily: "'DM Mono', monospace" }}>GPS locked — ±{location.accuracy}m accuracy</span></>
-          ) : (
-            <><span>📍</span><span style={{ fontSize: 12, color: "#EF4444" }}>{locationError || "Location not captured"}</span>
-              <button onClick={getLocation} style={{ marginLeft: "auto", fontSize: 10, color: "#6366F1", background: "none", border: "none", cursor: "pointer" }}>Retry</button>
-            </>
-          )}
+        <div style={{ ...s.gpsPill, background: location ? "rgba(16,185,129,0.08)" : "rgba(255,255,255,0.03)", border: `1px solid ${location ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.08)"}` }}>
+          {locationLoading
+            ? <><span>⏳</span><span style={{ fontSize: 13, color: "#94A3B8" }}>Getting your location...</span></>
+            : location
+            ? <><span>📍</span><span style={{ fontSize: 13, color: "#10B981", fontFamily: "'DM Mono', monospace" }}>GPS locked — ±{location.accuracy}m</span></>
+            : <><span>📍</span><span style={{ fontSize: 13, color: "#EF4444" }}>{locationError || "Location not captured"}</span>
+                <button onClick={getLocation} style={{ marginLeft: "auto", fontSize: 11, color: "#6366F1", background: "none", border: "none", cursor: "pointer" }}>Retry</button>
+              </>
+          }
         </div>
 
         <button
           onClick={() => setStep(3)}
           disabled={!canProceedStep2}
-          style={{ ...styles.primaryBtn, width: "100%", opacity: canProceedStep2 ? 1 : 0.4, cursor: canProceedStep2 ? "pointer" : "not-allowed" }}
+          style={{ ...s.primaryBtn, opacity: canProceedStep2 ? 1 : 0.4, cursor: canProceedStep2 ? "pointer" : "not-allowed" }}
         >
           Continue →
         </button>
-
-        <p style={{ ...styles.disclaimer, marginTop: 12 }}>
-          Your identity is protected. Dispatchers never see your name or phone number.
-        </p>
+        <p style={{ ...s.disclaimer, marginTop: 14 }}>Your identity is protected. Dispatchers never see your name.</p>
       </div>
     </div>
   );
 
-  // ── Step 3: Details + Submit ──────────────────────────────────────────────
+  // ── Step 3 ────────────────────────────────────────────────────────────────
   if (step === 3) return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <button onClick={() => setStep(2)} style={styles.backBtn}>← Back</button>
-
+    <div style={s.page}>
+      <style>{mq}</style>
+      <div style={s.card}>
+        <button onClick={() => setStep(2)} style={s.backBtn}>← Back</button>
         <StepBar current={3} />
-
-        <h2 style={styles.sectionTitle}>Describe what you see</h2>
-        <p style={styles.sectionSubtitle}>Be specific — floor number, number of people, visible hazards</p>
+        <h2 style={s.sectionTitle}>Describe what you see</h2>
+        <p style={s.sectionSubtitle}>Floor number, number of people, visible hazards</p>
 
         <textarea
           value={description}
           onChange={e => setDescription(e.target.value)}
-          placeholder="e.g. Flames visible from 2nd floor window, smoke coming from the roof. About 3 people outside."
+          placeholder="e.g. Flames visible from 2nd floor window, smoke from roof. About 3 people outside."
           rows={5}
-          style={{
-            width: "100%", padding: 14, borderRadius: 10,
-            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
-            color: "#F1F5F9", fontSize: 14, fontFamily: "'Space Grotesk', sans-serif",
-            resize: "vertical", outline: "none", boxSizing: "border-box", marginBottom: 20, lineHeight: 1.6,
-          }}
+          style={s.textarea}
         />
 
-        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 14, marginBottom: 20 }}>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#64748B", letterSpacing: 1, marginBottom: 10, textTransform: "uppercase" }}>
-            Submission Summary
-          </div>
+        <div style={s.summaryBox}>
+          <div style={s.summaryLabel}>Submission Summary</div>
           {[
             { label: "Type", value: `${incidentType.icon} ${incidentType.label}` },
             { label: "Media", value: `✅ ${mediaPreview?.type === "video" ? "Video" : "Photo"} attached` },
             { label: "Location", value: location ? `📍 GPS locked ±${location.accuracy}m` : "❌ Not captured" },
           ].map((row, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", paddingBottom: 8, marginBottom: 8, borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#64748B" }}>{row.label}</span>
-              <span style={{ fontSize: 12, color: "#CBD5E1" }}>{row.value}</span>
+            <div key={i} style={s.summaryRow}>
+              <span style={s.summaryKey}>{row.label}</span>
+              <span style={s.summaryVal}>{row.value}</span>
             </div>
           ))}
         </div>
 
         {error && (
-          <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12, color: "#EF4444" }}>
+          <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#EF4444" }}>
             {error}
           </div>
         )}
-
         {submitting && (
-          <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12, color: "#818CF8", fontFamily: "'DM Mono', monospace" }}>
+          <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#818CF8", fontFamily: "'DM Mono', monospace" }}>
             ⏳ {uploadProgress}
           </div>
         )}
@@ -284,82 +246,72 @@ export default function CitizenUpload({ onBack }) {
         <button
           onClick={handleSubmit}
           disabled={!canSubmit || submitting}
-          style={{ ...styles.primaryBtn, width: "100%", opacity: canSubmit && !submitting ? 1 : 0.4, cursor: canSubmit && !submitting ? "pointer" : "not-allowed" }}
+          style={{ ...s.primaryBtn, opacity: canSubmit && !submitting ? 1 : 0.4, cursor: canSubmit && !submitting ? "pointer" : "not-allowed" }}
         >
           {submitting ? "Uploading..." : "🚨 Submit Report"}
         </button>
-
-        <p style={{ ...styles.disclaimer, marginTop: 12 }}>
-          Submitting false reports is a criminal offence. All submissions are cryptographically logged.
-        </p>
+        <p style={{ ...s.disclaimer, marginTop: 14 }}>False reports are a criminal offence and are cryptographically logged.</p>
       </div>
     </div>
   );
 
-  // ── Step 4: Confirmation ──────────────────────────────────────────────────
+  // ── Step 4 ────────────────────────────────────────────────────────────────
   if (step === 4) return (
-    <div style={styles.container}>
-      <div style={{ ...styles.card, textAlign: "center" }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
-        <h2 style={{ ...styles.title, marginBottom: 8 }}>Report Submitted!</h2>
-        <p style={{ color: "#94A3B8", marginBottom: 24, lineHeight: 1.6 }}>
-          Your photo/video has been saved to our server and your report is now in the dispatcher's queue.
+    <div style={s.page}>
+      <style>{mq}</style>
+      <div style={{ ...s.card, textAlign: "center" }}>
+        <div style={{ fontSize: 72, marginBottom: 16 }}>✅</div>
+        <h2 style={{ ...s.title, marginBottom: 8 }}>Report Submitted!</h2>
+        <p style={{ color: "#94A3B8", marginBottom: 24, lineHeight: 1.7, fontSize: 15 }}>
+          Your photo/video has been saved and your report is now in the dispatcher's queue.
         </p>
-
         <div style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 10, padding: 16, marginBottom: 24, textAlign: "left" }}>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#10B981", letterSpacing: 1, marginBottom: 10, textTransform: "uppercase" }}>
-            What happens next
-          </div>
+          <div style={s.summaryLabel}>What happens next</div>
           {[
-            "Your media is saved securely to our server ✅",
+            "Your media is saved securely ✅",
             "AI verification runs in ~8 seconds",
             "Dispatcher receives your media card",
             "Your identity remains fully protected",
           ].map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, fontSize: 12, color: "#94A3B8" }}>
+            <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, fontSize: 14, color: "#94A3B8" }}>
               <span style={{ color: "#10B981" }}>→</span> {item}
             </div>
           ))}
         </div>
-
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 10 }}>
           <button
             onClick={() => { setStep(1); setIncidentType(null); setMediaFile(null); setMediaPreview(null); setDescription(""); setLocation(null); setError(null); }}
-            style={{ ...styles.primaryBtn, flex: 1 }}
+            style={{ ...s.primaryBtn, flex: 1 }}
           >
             Submit Another
           </button>
-          <button onClick={onBack} style={{ ...styles.secondaryBtn, flex: 1 }}>
-            Back to Dashboard
+          <button onClick={onBack} style={{ ...s.secondaryBtn, flex: 1 }}>
+            Dashboard
           </button>
         </div>
-
-        <p style={{ ...styles.disclaimer, marginTop: 16 }}>
-          Always call <strong>911</strong> for life-threatening emergencies.
-        </p>
+        <p style={{ ...s.disclaimer, marginTop: 16 }}>Always call <strong>911</strong> for life-threatening emergencies.</p>
       </div>
     </div>
   );
 }
 
 // ─── Step Bar ─────────────────────────────────────────────────────────────────
-
 function StepBar({ current }) {
   return (
     <div style={{ display: "flex", alignItems: "center", marginBottom: 28, justifyContent: "center" }}>
       {["Type", "Media", "Details", "Done"].map((s, i) => (
         <div key={i} style={{ display: "flex", alignItems: "center" }}>
           <div style={{
-            width: 24, height: 24, borderRadius: "50%",
+            width: 28, height: 28, borderRadius: "50%",
             background: i < current - 1 ? "#10B981" : i === current - 1 ? "#6366F1" : "rgba(255,255,255,0.08)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 10, fontFamily: "'DM Mono', monospace",
+            fontSize: 11, fontFamily: "'DM Mono', monospace",
             color: i <= current - 1 ? "white" : "#475569",
           }}>
             {i < current - 1 ? "✓" : i + 1}
           </div>
-          <span style={{ fontSize: 10, color: i === current - 1 ? "#818CF8" : i < current - 1 ? "#10B981" : "#475569", marginLeft: 4, fontFamily: "'DM Mono', monospace" }}>{s}</span>
-          {i < 3 && <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.08)", margin: "0 8px" }} />}
+          <span style={{ fontSize: 11, color: i === current - 1 ? "#818CF8" : i < current - 1 ? "#10B981" : "#475569", marginLeft: 5, fontFamily: "'DM Mono', monospace" }}>{s}</span>
+          {i < 3 && <div style={{ width: 16, height: 1, background: "rgba(255,255,255,0.08)", margin: "0 8px" }} />}
         </div>
       ))}
     </div>
@@ -367,43 +319,88 @@ function StepBar({ current }) {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = {
-  container: {
+const s = {
+  page: {
     minHeight: "100vh", background: "#080E17",
     display: "flex", alignItems: "flex-start", justifyContent: "center",
-    padding: "24px 16px", fontFamily: "'Space Grotesk', sans-serif", color: "#F1F5F9",
+    padding: "20px 16px", fontFamily: "'Space Grotesk', sans-serif", color: "#F1F5F9",
   },
   card: {
-    width: "100%", maxWidth: 480,
+    width: "100%", maxWidth: 500,
     background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: 16, padding: 28,
+    borderRadius: 16, padding: "24px 20px",
   },
   backBtn: {
     background: "none", border: "none", color: "#475569",
-    fontFamily: "'DM Mono', monospace", fontSize: 11, cursor: "pointer",
+    fontFamily: "'DM Mono', monospace", fontSize: 12, cursor: "pointer",
     padding: 0, marginBottom: 20, display: "block",
   },
   header: { textAlign: "center", marginBottom: 24 },
-  headerIcon: { fontSize: 36, marginBottom: 8 },
-  title: { fontWeight: 700, fontSize: 24, color: "#F1F5F9", margin: "0 0 4px 0" },
+  title: { fontWeight: 700, fontSize: 26, color: "#F1F5F9", margin: "0 0 4px 0" },
   subtitle: { color: "#64748B", fontSize: 13, margin: 0, fontFamily: "'DM Mono', monospace" },
-  sectionTitle: { fontWeight: 700, fontSize: 17, color: "#F1F5F9", margin: "0 0 6px 0" },
-  sectionSubtitle: { color: "#64748B", fontSize: 12, margin: "0 0 20px 0", lineHeight: 1.5 },
+  sectionTitle: { fontWeight: 700, fontSize: 18, color: "#F1F5F9", margin: "0 0 6px 0" },
+  sectionSubtitle: { color: "#64748B", fontSize: 13, margin: "0 0 18px 0", lineHeight: 1.5 },
   typeGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 },
-  typeBtn: { padding: "16px 12px", borderRadius: 10, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.15s", textAlign: "center" },
-  typeBtnLabel: { fontWeight: 600, fontSize: 13, color: "#F1F5F9" },
-  typeBtnDesc: { fontSize: 10, color: "#64748B", fontFamily: "'DM Mono', monospace" },
+  typeBtn: {
+    padding: "18px 12px", borderRadius: 12, cursor: "pointer",
+    display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+    background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+    transition: "all 0.15s", textAlign: "center",
+  },
+  typeBtnLabel: { fontWeight: 600, fontSize: 14, color: "#F1F5F9" },
+  typeBtnDesc: { fontSize: 10, color: "#64748B", fontFamily: "'DM Mono', monospace", lineHeight: 1.3 },
+  uploadBox: {
+    border: "2px dashed rgba(99,102,241,0.4)", borderRadius: 14,
+    padding: "28px 20px", textAlign: "center", cursor: "pointer",
+    background: "rgba(99,102,241,0.04)", marginBottom: 14, transition: "border-color 0.2s",
+  },
+  gpsPill: {
+    padding: "12px 14px", borderRadius: 10, marginBottom: 18,
+    display: "flex", alignItems: "center", gap: 8,
+  },
   primaryBtn: {
-    padding: "13px 20px", borderRadius: 10,
+    width: "100%", padding: "15px 20px", borderRadius: 12,
     background: "linear-gradient(135deg, #6366F1, #4F46E5)",
     border: "none", color: "white",
-    fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 14, cursor: "pointer",
+    fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16,
+    cursor: "pointer", transition: "opacity 0.15s",
   },
   secondaryBtn: {
-    padding: "13px 20px", borderRadius: 10,
+    padding: "15px 20px", borderRadius: 12,
     background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8",
-    fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 14, cursor: "pointer",
+    fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 16, cursor: "pointer",
   },
-  disclaimer: { fontSize: 11, color: "#475569", textAlign: "center", lineHeight: 1.5, fontFamily: "'DM Mono', monospace" },
+  textarea: {
+    width: "100%", padding: 14, borderRadius: 10,
+    background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+    color: "#F1F5F9", fontSize: 15, fontFamily: "'Space Grotesk', sans-serif",
+    resize: "vertical", outline: "none", boxSizing: "border-box", marginBottom: 18, lineHeight: 1.6,
+  },
+  summaryBox: {
+    background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+    borderRadius: 10, padding: 14, marginBottom: 18,
+  },
+  summaryLabel: {
+    fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#64748B",
+    letterSpacing: 1, marginBottom: 10, textTransform: "uppercase",
+  },
+  summaryRow: {
+    display: "flex", justifyContent: "space-between", alignItems: "center",
+    paddingBottom: 8, marginBottom: 8, borderBottom: "1px solid rgba(255,255,255,0.04)",
+  },
+  summaryKey: { fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#64748B" },
+  summaryVal: { fontSize: 13, color: "#CBD5E1" },
+  disclaimer: {
+    fontSize: 11, color: "#475569", textAlign: "center",
+    lineHeight: 1.5, fontFamily: "'DM Mono', monospace",
+  },
 };
+
+// Media query CSS for mobile
+const mq = `
+  @media (max-width: 480px) {
+    .cs-card { padding: 18px 14px !important; }
+    .cs-type-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+    .cs-type-btn { padding: 14px 8px !important; }
+  }
+`;
