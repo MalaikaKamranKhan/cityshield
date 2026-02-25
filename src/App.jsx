@@ -12,13 +12,9 @@ const C = {
   border:     "rgba(255,255,255,0.07)",
   borderMid:  "rgba(255,255,255,0.12)",
   gold:       "#C9A84C",
-  goldLight:  "#E2C07A",
   goldDim:    "rgba(201,168,76,0.15)",
   goldBorder: "rgba(201,168,76,0.3)",
   blue:       "#2E6FD8",
-  blueLight:  "#4B8FFF",
-  blueDim:    "rgba(46,111,216,0.15)",
-  blueBorder: "rgba(46,111,216,0.3)",
   green:      "#2ECC71",
   greenDim:   "rgba(46,204,113,0.12)",
   greenBorder:"rgba(46,204,113,0.3)",
@@ -54,6 +50,61 @@ const STATUS_CONFIG = {
   rejected:       { label: "REJECTED",         color: C.gray,   bg: C.grayDim,  border: "rgba(107,114,128,0.25)" },
 };
 
+// ─── Simulated AI analysis for real submissions ───────────────────────────────
+const AI_PROFILES = {
+  structure_fire: {
+    sceneCategory: "Structure Fire — Unverified",
+    notes: "Citizen-reported fire incident. Visual media submitted for review. AI scene classification pending full pipeline processing.",
+    severity: 7, trust: 0.72,
+  },
+  medical: {
+    sceneCategory: "Medical Emergency — Unverified",
+    notes: "Citizen-reported medical incident. Submission includes media evidence. Recommend immediate dispatcher review.",
+    severity: 6, trust: 0.68,
+  },
+  vehicle_accident: {
+    sceneCategory: "Vehicle Incident — Unverified",
+    notes: "Citizen-reported vehicle incident. GPS coordinates captured. Media submitted for scene assessment.",
+    severity: 5, trust: 0.74,
+  },
+  silent_witness: {
+    sceneCategory: "Disturbance Report — Unverified",
+    notes: "Silent witness submission received. Identity protected. Scene details available in media and description.",
+    severity: 4, trust: 0.61,
+  },
+  hazmat: {
+    sceneCategory: "Hazardous Situation — Unverified",
+    notes: "Citizen-reported hazardous material incident. Exercise caution. Verification pipeline running.",
+    severity: 6, trust: 0.55,
+  },
+  other: {
+    sceneCategory: "General Incident — Unverified",
+    notes: "Citizen report received. Incident type requires manual classification by dispatcher.",
+    severity: 3, trust: 0.60,
+  },
+};
+
+function getAI(sub) {
+  if (sub.isMock) return sub.aiAdvisory;
+  const profile = AI_PROFILES[sub.incident_type] || AI_PROFILES.other;
+  return {
+    sceneCategory: profile.sceneCategory,
+    notes: profile.notes,
+    faceBlurred: true,
+  };
+}
+
+function getTrust(sub) {
+  if (sub.isMock) return sub.trustScore;
+  return AI_PROFILES[sub.incident_type]?.trust || 0.65;
+}
+
+function getSeverity(sub) {
+  if (sub.isMock) return sub.severityEstimate;
+  return AI_PROFILES[sub.incident_type]?.severity || 5;
+}
+
+// ─── Mock Data ────────────────────────────────────────────────────────────────
 const MOCK_SUBMISSIONS = [
   {
     id: "mock_001", isMock: true, incident_type: "structure_fire",
@@ -131,7 +182,10 @@ function MediaCard({ sub, isSelected, onClick }) {
   const status = STATUS_CONFIG[sub.status] || STATUS_CONFIG.pending_review;
   const color = INCIDENT_COLORS[sub.incident_type] || C.blue;
   const [hovered, setHovered] = useState(false);
-  const label = sub.aiAdvisory?.sceneCategory || (sub.incident_type || "incident").replace(/_/g, " ").toUpperCase();
+  const ai = getAI(sub);
+  const trust = getTrust(sub);
+  const severity = getSeverity(sub);
+  const label = ai.sceneCategory;
   const incidentId = `INC-${sub.id.toString().slice(-5).toUpperCase()}`;
 
   return (
@@ -147,6 +201,7 @@ function MediaCard({ sub, isSelected, onClick }) {
         transition: "all 0.15s ease", marginBottom: 6,
       }}
     >
+      {/* Top row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 16 }}>{INCIDENT_ICONS[sub.incident_type] || "📢"}</span>
@@ -175,32 +230,28 @@ function MediaCard({ sub, isSelected, onClick }) {
         </div>
       </div>
 
-      {/* Only show AI advisory box for mock scenarios */}
-      {sub.isMock && (
-        <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 5, padding: "7px 9px", marginBottom: 8, border: `1px solid ${C.border}` }}>
-          <div style={{ fontFamily: C.fontMono, fontSize: 8, color: C.textDim, letterSpacing: 1, marginBottom: 5, textTransform: "uppercase" }}>
-            AI Advisory — Not a determination
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-            <span style={{ fontSize: 10, color: C.textSecond, fontFamily: C.fontMono }}>Severity</span>
-            <SeverityDots score={sub.severityEstimate} />
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 10, color: C.textSecond, fontFamily: C.fontMono }}>Trust</span>
-            <div style={{ width: 130 }}><TrustBar score={sub.trustScore} /></div>
-          </div>
+      {/* AI Advisory box — same for all */}
+      <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 5, padding: "7px 9px", marginBottom: 8, border: `1px solid ${C.border}` }}>
+        <div style={{ fontFamily: C.fontMono, fontSize: 8, color: C.textDim, letterSpacing: 1, marginBottom: 5, textTransform: "uppercase" }}>
+          AI Advisory — Not a determination
         </div>
-      )}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+          <span style={{ fontSize: 10, color: C.textSecond, fontFamily: C.fontMono }}>Severity</span>
+          <SeverityDots score={severity} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 10, color: C.textSecond, fontFamily: C.fontMono }}>Trust</span>
+          <div style={{ width: 130 }}><TrustBar score={trust} /></div>
+        </div>
+      </div>
 
       <div style={{ fontSize: 11, color: C.textSecond, lineHeight: 1.5, marginBottom: 8, fontFamily: C.fontMain }}>
-        {sub.aiAdvisory?.notes || sub.description || "No description"}
+        {sub.description || ai.notes}
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <span style={{ fontFamily: C.fontMono, fontSize: 9, color: C.green, background: C.greenDim, padding: "1px 5px", borderRadius: 3 }}>
-            ⚡ 8s
-          </span>
+          <span style={{ fontFamily: C.fontMono, fontSize: 9, color: C.green, background: C.greenDim, padding: "1px 5px", borderRadius: 3 }}>⚡ 8s</span>
           {(sub.gpsValidated || sub.latitude)
             ? <span style={{ fontSize: 9, color: C.green, fontFamily: C.fontMono }}>📍 GPS ✓</span>
             : <span style={{ fontSize: 9, color: C.red, fontFamily: C.fontMono }}>📍 GPS ✗</span>}
@@ -209,9 +260,7 @@ function MediaCard({ sub, isSelected, onClick }) {
           </span>
         </div>
         {sub.distanceFromStation && (
-          <span style={{ fontSize: 9, color: C.textDim, fontFamily: C.fontMono }}>
-            {sub.distanceFromStation}km
-          </span>
+          <span style={{ fontSize: 9, color: C.textDim, fontFamily: C.fontMono }}>{sub.distanceFromStation}km</span>
         )}
       </div>
     </div>
@@ -231,7 +280,9 @@ function DetailPanel({ sub, onAction }) {
     );
   }
 
-  const label = sub.aiAdvisory?.sceneCategory || (sub.incident_type || "incident").replace(/_/g, " ").toUpperCase();
+  const ai = getAI(sub);
+  const trust = getTrust(sub);
+  const severity = getSeverity(sub);
   const incidentId = `INC-${sub.id.toString().slice(-5).toUpperCase()}`;
   const status = STATUS_CONFIG[sub.status] || STATUS_CONFIG.pending_review;
 
@@ -245,7 +296,7 @@ function DetailPanel({ sub, onAction }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <h2 style={{ fontFamily: C.fontMono, fontWeight: 700, fontSize: 18, color: C.textPrimary, margin: 0, letterSpacing: 0.5 }}>
-                {label}
+                {ai.sceneCategory}
               </h2>
               {sub.isMock && (
                 <span style={{ fontFamily: C.fontMono, fontSize: 8, color: C.textDim, background: "rgba(255,255,255,0.04)", padding: "2px 7px", borderRadius: 3, border: `1px solid ${C.border}` }}>
@@ -276,7 +327,7 @@ function DetailPanel({ sub, onAction }) {
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <Marker position={[sub.latitude, sub.longitude]}>
-              <Popup>{label}</Popup>
+              <Popup>{ai.sceneCategory}</Popup>
             </Marker>
           </MapContainer>
         ) : (
@@ -317,14 +368,14 @@ function DetailPanel({ sub, onAction }) {
         )}
       </div>
 
-      {/* Citizen Description — for real submissions */}
-      {!sub.isMock && (
+      {/* Citizen description — real submissions */}
+      {!sub.isMock && sub.description && (
         <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 14 }}>
           <div style={{ fontFamily: C.fontMono, fontSize: 8, color: C.textDim, letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>
             Citizen Description
           </div>
           <div style={{ fontSize: 13, color: C.textSecond, lineHeight: 1.6, fontFamily: C.fontMain }}>
-            {sub.description || "No description provided"}
+            {sub.description}
           </div>
         </div>
       )}
@@ -336,7 +387,7 @@ function DetailPanel({ sub, onAction }) {
         </div>
         {[
           { label: "GPS + Metadata Match", pass: sub.gpsValidated || !!sub.latitude, detail: (sub.gpsValidated || !!sub.latitude) ? "Device GPS matches EXIF & cell data" : "GPS mismatch flagged" },
-          { label: "Deepfake Detection", pass: (sub.trustScore || 0.5) > 0.5, detail: `Authenticity score: ${Math.round((sub.trustScore || 0.5) * 100)}%` },
+          { label: "Deepfake Detection", pass: trust > 0.5, detail: `Authenticity score: ${Math.round(trust * 100)}%` },
           { label: "Account Verification", pass: true, detail: `Phone verified · ${sub.accountAge || "verified account"}` },
           { label: "Prior Submission History", pass: (sub.priorSubmissions || 0) >= 1, detail: `${sub.priorSubmissions || 0} prior verified submissions` },
         ].map((check, i) => (
@@ -350,25 +401,31 @@ function DetailPanel({ sub, onAction }) {
         ))}
       </div>
 
-      {/* AI Advisory — only for mock scenarios */}
-      {sub.isMock && sub.aiAdvisory && (
-        <div style={{ background: C.goldDim, border: `1px solid ${C.goldBorder}`, borderRadius: 8, padding: 14, marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <span style={{ fontSize: 11 }}>🤖</span>
-            <span style={{ fontFamily: C.fontMono, fontSize: 8, color: C.gold, letterSpacing: 1, textTransform: "uppercase" }}>
-              AI Scene Analysis — Advisory Only
-            </span>
-          </div>
-          <div style={{ fontSize: 12, color: C.textSecond, lineHeight: 1.6, fontFamily: C.fontMain }}>
-            {sub.aiAdvisory.notes}
-          </div>
-          <div style={{ marginTop: 10, fontSize: 9, color: C.textDim, fontFamily: C.fontMono, letterSpacing: 0.3 }}>
-            Advisory only. All dispatch decisions remain with human operators.
-          </div>
+      {/* AI Advisory — same for all */}
+      <div style={{ background: C.goldDim, border: `1px solid ${C.goldBorder}`, borderRadius: 8, padding: 14, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+          <span style={{ fontSize: 11 }}>🤖</span>
+          <span style={{ fontFamily: C.fontMono, fontSize: 8, color: C.gold, letterSpacing: 1, textTransform: "uppercase" }}>
+            AI Scene Analysis — Advisory Only
+          </span>
         </div>
-      )}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <span style={{ fontSize: 11, color: C.textSecond, fontFamily: C.fontMono }}>Severity estimate</span>
+          <SeverityDots score={severity} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <span style={{ fontSize: 11, color: C.textSecond, fontFamily: C.fontMono }}>Trust score</span>
+          <div style={{ width: 160 }}><TrustBar score={trust} /></div>
+        </div>
+        <div style={{ fontSize: 12, color: C.textSecond, lineHeight: 1.6, fontFamily: C.fontMain }}>
+          {ai.notes}
+        </div>
+        <div style={{ marginTop: 10, fontSize: 9, color: C.textDim, fontFamily: C.fontMono, letterSpacing: 0.3 }}>
+          Advisory only. All dispatch decisions remain with human operators.
+        </div>
+      </div>
 
-      {/* Action buttons — real submissions only */}
+      {/* Action buttons */}
       {!sub.isMock && sub.status === "pending_review" && (
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => onAction(sub.id, "accepted")} style={{ flex: 1, padding: "11px 0", background: C.greenDim, border: `1px solid ${C.greenBorder}`, borderRadius: 6, color: C.green, fontFamily: C.fontMono, fontWeight: 600, fontSize: 11, cursor: "pointer", letterSpacing: 1 }}>✓ ACCEPT</button>
@@ -465,18 +522,14 @@ export default function CityShieldDashboard() {
         </span>
       </div>
 
-      {/* Main header */}
+      {/* Header */}
       <div style={{ background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${C.border}`, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 54, flexShrink: 0 }}>
-        {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <img
             src="/logo.png"
             alt="City Shield"
             style={{ width: 38, height: 38, borderRadius: 8, objectFit: "contain" }}
-            onError={e => {
-              e.target.style.display = "none";
-              e.target.nextSibling.style.display = "flex";
-            }}
+            onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
           />
           <div style={{ width: 38, height: 38, borderRadius: 6, background: `linear-gradient(135deg, ${C.blue}, ${C.gold})`, alignItems: "center", justifyContent: "center", fontSize: 18, display: "none" }}>🛡️</div>
           <div>
