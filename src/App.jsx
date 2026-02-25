@@ -267,7 +267,17 @@ function DetailPanel({ sub, onAction }) {
         {sub.media_url ? (
           sub.media_type === "video"
             ? <video src={sub.media_url} controls style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : <img src={sub.media_url} alt="submission" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <><img 
+            src ={sub.media.url}
+            alt="submission"
+            onClick={() => window.open(sub.media_url, '_blank')}
+            style={{ width:  "100%", maxHeight: 300, objectFit: "contain", background:"#000", display: "block", cursor: "zoom-in"}}
+            />
+            <div style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,0.6)", borderRadius: 6, padding: "4px 8px", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "white", cursor: "pointer" }}
+            onClick={() => window.open(sub.media_url, '_blank')}>
+            ⛶ Full screen 
+            </div>
+            </>
         ) : (
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 24, marginBottom: 4 }}>{sub.media_type === "video" ? "▶" : "📷"}</div>
