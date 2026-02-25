@@ -267,7 +267,7 @@ function DetailPanel({ sub, onAction }) {
         {sub.media_url ? (
           sub.media_type === "video"
             ? <video src={sub.media_url} controls style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : <img src={sub.media_url} alt="submission" style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", width: "100%", maxHeight: 400 }} />
+            : <img src={sub.media_url} alt="submission" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 24, marginBottom: 4 }}>{sub.media_type === "video" ? "▶" : "📷"}</div>
