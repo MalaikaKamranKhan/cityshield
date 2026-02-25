@@ -126,20 +126,6 @@ function SeverityDots({ score }) {
   );
 }
 
-function IncidentBadge({ type }) {
-  const color = INCIDENT_COLORS[type] || C.blue;
-  return (
-    <span style={{
-      fontFamily: C.fontMono, fontSize: 8, fontWeight: 600,
-      color, background: `${color}18`,
-      border: `1px solid ${color}40`,
-      padding: "1px 6px", borderRadius: 3, letterSpacing: 1,
-    }}>
-      {(type || "other").replace(/_/g, " ").toUpperCase()}
-    </span>
-  );
-}
-
 // ─── MediaCard ────────────────────────────────────────────────────────────────
 function MediaCard({ sub, isSelected, onClick }) {
   const status = STATUS_CONFIG[sub.status] || STATUS_CONFIG.pending_review;
@@ -161,7 +147,6 @@ function MediaCard({ sub, isSelected, onClick }) {
         transition: "all 0.15s ease", marginBottom: 6,
       }}
     >
-      {/* Top row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 16 }}>{INCIDENT_ICONS[sub.incident_type] || "📢"}</span>
@@ -190,26 +175,27 @@ function MediaCard({ sub, isSelected, onClick }) {
         </div>
       </div>
 
-      {/* AI Advisory box */}
-      <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 5, padding: "7px 9px", marginBottom: 8, border: `1px solid ${C.border}` }}>
-        <div style={{ fontFamily: C.fontMono, fontSize: 8, color: C.textDim, letterSpacing: 1, marginBottom: 5, textTransform: "uppercase" }}>
-          AI Advisory — Not a determination
+      {/* Only show AI advisory box for mock scenarios */}
+      {sub.isMock && (
+        <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 5, padding: "7px 9px", marginBottom: 8, border: `1px solid ${C.border}` }}>
+          <div style={{ fontFamily: C.fontMono, fontSize: 8, color: C.textDim, letterSpacing: 1, marginBottom: 5, textTransform: "uppercase" }}>
+            AI Advisory — Not a determination
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+            <span style={{ fontSize: 10, color: C.textSecond, fontFamily: C.fontMono }}>Severity</span>
+            <SeverityDots score={sub.severityEstimate} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 10, color: C.textSecond, fontFamily: C.fontMono }}>Trust</span>
+            <div style={{ width: 130 }}><TrustBar score={sub.trustScore} /></div>
+          </div>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-          <span style={{ fontSize: 10, color: C.textSecond, fontFamily: C.fontMono }}>Severity</span>
-          <SeverityDots score={sub.severityEstimate} />
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 10, color: C.textSecond, fontFamily: C.fontMono }}>Trust</span>
-          <div style={{ width: 130 }}><TrustBar score={sub.trustScore} /></div>
-        </div>
-      </div>
+      )}
 
       <div style={{ fontSize: 11, color: C.textSecond, lineHeight: 1.5, marginBottom: 8, fontFamily: C.fontMain }}>
         {sub.aiAdvisory?.notes || sub.description || "No description"}
       </div>
 
-      {/* Bottom row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <span style={{ fontFamily: C.fontMono, fontSize: 9, color: C.green, background: C.greenDim, padding: "1px 5px", borderRadius: 3 }}>
@@ -331,6 +317,18 @@ function DetailPanel({ sub, onAction }) {
         )}
       </div>
 
+      {/* Citizen Description — for real submissions */}
+      {!sub.isMock && (
+        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontFamily: C.fontMono, fontSize: 8, color: C.textDim, letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>
+            Citizen Description
+          </div>
+          <div style={{ fontSize: 13, color: C.textSecond, lineHeight: 1.6, fontFamily: C.fontMain }}>
+            {sub.description || "No description provided"}
+          </div>
+        </div>
+      )}
+
       {/* Verification */}
       <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 14 }}>
         <div style={{ fontFamily: C.fontMono, fontSize: 8, color: C.textDim, letterSpacing: 1, marginBottom: 12, textTransform: "uppercase" }}>
@@ -352,23 +350,25 @@ function DetailPanel({ sub, onAction }) {
         ))}
       </div>
 
-      {/* AI Advisory */}
-      <div style={{ background: C.goldDim, border: `1px solid ${C.goldBorder}`, borderRadius: 8, padding: 14, marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-          <span style={{ fontSize: 11 }}>🤖</span>
-          <span style={{ fontFamily: C.fontMono, fontSize: 8, color: C.gold, letterSpacing: 1, textTransform: "uppercase" }}>
-            AI Scene Analysis — Advisory Only
-          </span>
+      {/* AI Advisory — only for mock scenarios */}
+      {sub.isMock && sub.aiAdvisory && (
+        <div style={{ background: C.goldDim, border: `1px solid ${C.goldBorder}`, borderRadius: 8, padding: 14, marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <span style={{ fontSize: 11 }}>🤖</span>
+            <span style={{ fontFamily: C.fontMono, fontSize: 8, color: C.gold, letterSpacing: 1, textTransform: "uppercase" }}>
+              AI Scene Analysis — Advisory Only
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: C.textSecond, lineHeight: 1.6, fontFamily: C.fontMain }}>
+            {sub.aiAdvisory.notes}
+          </div>
+          <div style={{ marginTop: 10, fontSize: 9, color: C.textDim, fontFamily: C.fontMono, letterSpacing: 0.3 }}>
+            Advisory only. All dispatch decisions remain with human operators.
+          </div>
         </div>
-        <div style={{ fontSize: 12, color: C.textSecond, lineHeight: 1.6, fontFamily: C.fontMain }}>
-          {sub.aiAdvisory?.notes || sub.description || "No description provided"}
-        </div>
-        <div style={{ marginTop: 10, fontSize: 9, color: C.textDim, fontFamily: C.fontMono, letterSpacing: 0.3 }}>
-          Advisory only. All dispatch decisions remain with human operators.
-        </div>
-      </div>
+      )}
 
-      {/* Action buttons */}
+      {/* Action buttons — real submissions only */}
       {!sub.isMock && sub.status === "pending_review" && (
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => onAction(sub.id, "accepted")} style={{ flex: 1, padding: "11px 0", background: C.greenDim, border: `1px solid ${C.greenBorder}`, borderRadius: 6, color: C.green, fontFamily: C.fontMono, fontWeight: 600, fontSize: 11, cursor: "pointer", letterSpacing: 1 }}>✓ ACCEPT</button>
@@ -448,7 +448,6 @@ export default function CityShieldDashboard() {
     : allSubmissions.filter(s => s.incident_type === filter);
 
   const pending = allSubmissions.filter(s => s.status === "pending_review").length;
-
   const timeStr = time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
   const dateStr = time.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }).toUpperCase();
 
@@ -456,7 +455,7 @@ export default function CityShieldDashboard() {
     <div style={{ fontFamily: C.fontMain, background: C.bg, minHeight: "100vh", color: C.textPrimary, display: "flex", flexDirection: "column" }}>
       <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
-      {/* Top bar — department info */}
+      {/* Top bar */}
       <div style={{ background: C.gold, padding: "4px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontFamily: C.fontMono, fontSize: 9, color: "#0D1B2A", fontWeight: 600, letterSpacing: 1.5 }}>
           ● CITY SHIELD — DISPATCH INTELLIGENCE PLATFORM — AUTHORIZED PERSONNEL ONLY
@@ -468,8 +467,18 @@ export default function CityShieldDashboard() {
 
       {/* Main header */}
       <div style={{ background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${C.border}`, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 54, flexShrink: 0 }}>
+        {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 6, background: `linear-gradient(135deg, ${C.blue}, ${C.gold})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🛡️</div>
+          <img
+            src="/logo.png"
+            alt="City Shield"
+            style={{ width: 38, height: 38, borderRadius: 8, objectFit: "contain" }}
+            onError={e => {
+              e.target.style.display = "none";
+              e.target.nextSibling.style.display = "flex";
+            }}
+          />
+          <div style={{ width: 38, height: 38, borderRadius: 6, background: `linear-gradient(135deg, ${C.blue}, ${C.gold})`, alignItems: "center", justifyContent: "center", fontSize: 18, display: "none" }}>🛡️</div>
           <div>
             <div style={{ fontFamily: C.fontMono, fontWeight: 700, fontSize: 14, letterSpacing: 1.5, color: C.textPrimary }}>CITY SHIELD</div>
             <div style={{ fontFamily: C.fontMono, fontSize: 8, color: C.textDim, letterSpacing: 1 }}>REAL-TIME CITIZEN INTELLIGENCE</div>
@@ -508,7 +517,6 @@ export default function CityShieldDashboard() {
 
       {/* Main layout */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-
         {/* Left: Feed */}
         <div style={{ width: 400, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", gap: 3, overflowX: "auto" }}>
