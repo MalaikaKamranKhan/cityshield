@@ -65,7 +65,7 @@ const MOCK_SUBMISSIONS = [
   {
     id: "mock_005", isMock: true,
     incident_type: "hazmat",
-    aiAdvisory: { sceneCategory: "Chemical Spill", notes: "Liquid pooling near loading dock. Color/texture consistent with industrial fluid.", faceBlurred: false },
+    aiAdvisory: { sceneCategory: "Chemical Spill (Unconfirmed)", notes: "Liquid pooling near loading dock. Color/texture consistent with industrial fluid.", faceBlurred: false },
     media_type: "photo", media_url: null,
     latitude: 40.7195, longitude: -74.0001,
     created_at: new Date(Date.now() - 75000).toISOString(),
@@ -79,10 +79,6 @@ function timeAgo(date) {
   if (seconds < 60) return `${seconds}s ago`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   return `${Math.floor(seconds / 3600)}h ago`;
-}
-
-function pipelineTime(submitted) {
-  return 8; // simulated for mock, real = actual
 }
 
 function TrustBar({ score }) {
@@ -183,7 +179,7 @@ function MediaCard({ sub, isSelected, onClick }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#10B981", background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 3 }}>
-            ⚡ {pipelineTime()}s pipeline
+            ⚡ 8s pipeline
           </span>
           {sub.gpsValidated || sub.latitude
             ? <span style={{ fontSize: 9, color: "#10B981", fontFamily: "'DM Mono', monospace" }}>📍 GPS ✓</span>
@@ -215,7 +211,6 @@ function DetailPanel({ sub, onAction }) {
     );
   }
 
-  const color = INCIDENT_COLORS[sub.incident_type] || "#6366F1";
   const label = sub.aiAdvisory?.sceneCategory || (sub.incident_type || "incident").replace(/_/g, " ").toUpperCase();
 
   return (
@@ -239,7 +234,7 @@ function DetailPanel({ sub, onAction }) {
         </div>
       </div>
 
-      {/* Map — compact height */}
+      {/* Map */}
       <div style={{ height: 160, borderRadius: 10, marginBottom: 20, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
         {sub.latitude && sub.longitude ? (
           <MapContainer
@@ -262,33 +257,42 @@ function DetailPanel({ sub, onAction }) {
         )}
       </div>
 
-      {/* Media preview */}
-      <div style={{ height: 120, borderRadius: 10, marginBottom: 20, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
+      {/* Media */}
+      <div style={{ borderRadius: 10, marginBottom: 20, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)", background: "#000", position: "relative" }}>
         {sub.media_url ? (
-          sub.media_type === "video"
-            ? <video src={sub.media_url} controls style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : <><img 
-            src ={sub.media.url}
-            alt="submission"
-            onClick={() => window.open(sub.media_url, '_blank')}
-            style={{ width:  "100%", maxHeight: 300, objectFit: "contain", background:"#000", display: "block", cursor: "zoom-in"}}
-            />
-            <div style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,0.6)", borderRadius: 6, padding: "4px 8px", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "white", cursor: "pointer" }}
-            onClick={() => window.open(sub.media_url, '_blank')}>
-            ⛶ Full screen 
-            </div>
+          sub.media_type === "video" ? (
+            <video src={sub.media_url} controls style={{ width: "100%", maxHeight: 300, display: "block" }} />
+          ) : (
+            <>
+              <img
+                src={sub.media_url}
+                alt="submission"
+                onClick={() => window.open(sub.media_url, '_blank')}
+                style={{ width: "100%", maxHeight: 300, objectFit: "contain", background: "#000", display: "block", cursor: "zoom-in" }}
+              />
+              <div
+                onClick={() => window.open(sub.media_url, '_blank')}
+                style={{
+                  position: "absolute", bottom: 8, right: 8,
+                  background: "rgba(0,0,0,0.7)", borderRadius: 6,
+                  padding: "5px 10px", fontFamily: "'DM Mono', monospace",
+                  fontSize: 10, color: "white", cursor: "pointer",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  display: "flex", alignItems: "center", gap: 4,
+                }}
+              >
+                ⛶ Full screen
+              </div>
             </>
+          )
         ) : (
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 24, marginBottom: 4 }}>{sub.media_type === "video" ? "▶" : "📷"}</div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#475569" }}>
-              {sub.isMock ? "DEMO — no real media" : `${(sub.media_type || "PHOTO").toUpperCase()} · PII REDACTED`}
+          <div style={{ padding: 24, textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>
+              {sub.media_type === "video" ? "▶" : "📷"}
             </div>
-          </div>
-        )}
-        {(sub.aiAdvisory?.faceBlurred) && (
-          <div style={{ position: "absolute", top: 8, right: 8, fontFamily: "'DM Mono', monospace", fontSize: 8, color: "#8B5CF6", background: "rgba(139,92,246,0.12)", padding: "2px 6px", borderRadius: 3, border: "1px solid rgba(139,92,246,0.3)" }}>
-            FACES BLURRED
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#475569" }}>
+              {sub.isMock ? "Demo scenario — no real media" : "No media attached"}
+            </div>
           </div>
         )}
       </div>
@@ -398,7 +402,6 @@ export default function CityShieldDashboard() {
     return <CitizenUpload onBack={() => { setShowCitizenForm(false); fetchSubmissions(); }} />;
   }
 
-  // Real submissions on top, mock below
   const allSubmissions = [...realSubmissions, ...MOCK_SUBMISSIONS];
 
   const filtered = filter === "all"
@@ -408,7 +411,6 @@ export default function CityShieldDashboard() {
     : allSubmissions.filter(s => s.incident_type === filter);
 
   const pending = allSubmissions.filter(s => s.status === "pending_review").length;
-  const realPending = realSubmissions.filter(s => s.status === "pending_review").length;
 
   return (
     <div style={{ fontFamily: "'Space Grotesk', sans-serif", background: "#080E17", minHeight: "100vh", color: "#F1F5F9", display: "flex", flexDirection: "column" }}>
@@ -479,7 +481,6 @@ export default function CityShieldDashboard() {
           </div>
 
           <div style={{ flex: 1, overflowY: "auto", padding: "12px 12px" }}>
-            {/* Real submissions first */}
             {realSubmissions.length > 0 && (
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#10B981", letterSpacing: 1, marginBottom: 8, padding: "0 4px" }}>
                 ● LIVE SUBMISSIONS
@@ -488,8 +489,6 @@ export default function CityShieldDashboard() {
             {filtered.filter(s => !s.isMock).map(sub => (
               <MediaCard key={sub.id} sub={sub} isSelected={selected?.id === sub.id} onClick={() => setSelected(sub)} />
             ))}
-
-            {/* Demo divider */}
             <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#334155", letterSpacing: 1, margin: "12px 0 8px 4px" }}>
               ○ DEMO SCENARIOS
             </div>
